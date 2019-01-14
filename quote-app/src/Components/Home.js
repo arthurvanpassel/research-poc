@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import YouTube from 'react-youtube';
 import YTSearch from '../YoutubeGet';
-import { getSubtitles } from 'youtube-captions-scraper';
 
 var XMLParser = require('react-xml-parser');
 var unirest = require('unirest');
@@ -13,11 +12,14 @@ class Home extends Component {
         this.state = {
             name: "Arthur",
             value: '',
+            movie: "",
             videos: [],
             videoId: "",
             videoTitle: "",
             transcript: {},
-            i: 0
+            i: 0,
+            start: 0,
+            movies: []
         };
 
         this.handleChange = this.handleChange.bind(this);
@@ -33,15 +35,104 @@ class Home extends Component {
 
     handleSubmit(event) {
         event.preventDefault();
-        var term = this.state.value;
+        var term = this.state.value.toLowerCase();
+        var array = term.split(" ");
+
+        var search_terms = ['is', 'a', 'of', 'was', 'the'];
+
+        for (var i=array.length-1; i>=0; i--) {
+            for (var j=0; j<search_terms.length; j++)
+                if (array[i] === search_terms[j]) {
+                    array.splice(i, 1);
+                    // break;       //<-- Uncomment  if only the first term has to be removed
+                }
+        }
+
+        var newTerm = array.join('+')
         this.state.i = 0;
-        // unirest.get("https://juanroldan1989-moviequotes-v1.p.mashape.com/api/v1/quotes?actor=Al+Pacino")
-        // .header("X-Mashape-Key", "E6Wd4uWlmumshKcbfjazXkl6cA9ip1ak7kejsnECYSpm9WLsmf")
-        // .header("Authorization", "Token token=yd8WzkWNEEzGtqMSgiZBrwtt")
-        // .header("Accept", "text/plain")
-        // .end(function (result) {
-        // alert(result.status, result.headers, result.body);
-        // });
+
+        let data = [];
+
+        unirest.get("https://juanroldan1989-moviequotes-v1.p.mashape.com/api/v1/quotes?content="+newTerm)
+        .header("X-Mashape-Key", "E6Wd4uWlmumshKcbfjazXkl6cA9ip1ak7kejsnECYSpm9WLsmf")
+        .header("Authorization", "Token token=lXIGOsl1thPFhZeZJHVaxQtt")
+        .header("Accept", "text/plain")
+        .end((result) => {
+        console.log(result.body);  
+        data = result.body;
+        this.state.movies = data;   
+        this.getMovie();   
+        });
+    }
+
+    getMovie() {
+        var term = this.state.value.toLowerCase();
+        var array = term.split(" ");
+
+        var search_terms = ['is', 'a', 'of', 'was', 'the'];
+
+        for (var i=array.length-1; i>=0; i--) {
+            for (var j=0; j<search_terms.length; j++)
+                if (array[i] === search_terms[j]) {
+                    array.splice(i, 1);
+                    // break;       //<-- Uncomment  if only the first term has to be removed
+                }
+        }
+
+        var newTerm = array.join('+')
+
+        var bestResultLevel = 0;
+        var bestResult = [];
+        var movies = this.state.movies;
+        for (let i=0; i < movies.length; i++) {
+            var string = movies[i].content.toLowerCase()
+
+            console.log(string);
+            if (string.includes(array[0])) {
+                if (bestResultLevel<1) {
+                    bestResult = movies[i];
+                    bestResultLevel = 1;
+                }
+                console.log('word 1 in answer ' + i)                
+                if (string.includes(array[1]) || string.includes(array[2])) {
+                    if (bestResultLevel<2) {
+                        bestResult = movies[i];
+                        bestResultLevel = 2;
+                    }
+                    console.log('word 2 or 3 in answer ' + i)
+                    if (string.includes(array[3]) || string.includes(array[4])) {
+                        if (bestResultLevel<3) {
+                            bestResult = movies[i];
+                            bestResultLevel = 3;
+                        }
+                        console.log('word 4 or 5 in answer ' + i)
+                        if (string.includes(array[5]) || string.includes(array[6])) {
+                            if (bestResultLevel<4) {
+                                bestResult = movies[i];
+                                bestResultLevel = 4;
+                            }
+                            console.log('word 6 or 7 in answer ' + i)
+                        }
+                    }
+
+                }
+                else {
+                    // console.log('rest of string not in caption');
+                }
+            } else {
+                // console.log('word 1 not in answer ' + i)
+                //Not in the array
+            }
+        }
+        console.log(bestResult);
+        this.state.movie = bestResult.movie.title
+
+        this.getSearch();
+    }
+
+    getSearch() {
+        var term = this.state.value + " " + this.state.movie;
+        
         YTSearch({type: 'video', key: API_KEY, term: term, maxResults: 5}, (data) =>{
             console.log(data);
             this.state.videos = data;
@@ -50,7 +141,8 @@ class Home extends Component {
             
             this.getSubs();
          });
-         
+            // this.state.videoId = "LTXYjAOCY2Q";
+            // this.getSubs();
     }
 
     getSubs() {
@@ -65,15 +157,16 @@ class Home extends Component {
             console.log(xml);
             
             if (xml == undefined && this.state.i < 4) {
-                console.log('first video no transcript');
+                console.log('video ' +this.state.i+ ' no transcript');
                 this.state.i = this.state.i + 1;
                 var j = this.state.i;
                 this.state.videoId = this.state.videos[j].id.videoId;
                 this.state.videoTitle = this.state.videos[j].snippet.title;
                 this.getSubs();
             }
-
-            this.getVideo()
+            else {
+                this.getVideoStart()
+            }
          });
 
         // getSubtitles({
@@ -83,6 +176,62 @@ class Home extends Component {
         //   });
         // this.getVideo();
 
+    }
+
+    getVideoStart() {
+        console.log("get start of video");
+        var captions = this.state.transcript.children;
+        console.log(captions);
+        var term = this.state.value.toLowerCase();
+        var array = term.split(" ");
+
+        var search_terms = ['is', 'a', 'of', 'was', 'the'];
+
+        // for (var i=array.length-1; i>=0; i--) {
+        //     for (var j=0; j<search_terms.length; j++)
+        //         if (array[i] === search_terms[j]) {
+        //             array.splice(i, 1);
+        //             // break;       //<-- Uncomment  if only the first term has to be removed
+        //         }
+        // }
+
+        console.log(array);
+
+        var bestResultLevel = 0;
+        var resultLevel = 0;
+        var bestResult = [];
+        
+        for (let i=0; i < captions.length; i++) {
+            var string = captions[i].value.toLowerCase()
+            resultLevel = 0;
+            console.log(string);
+            for (let j=0; j < array.length; j++) {
+                if (string.includes(array[j])) {
+                    resultLevel++;
+                    console.log("word "+j+" in caption")
+                }
+                if (resultLevel>bestResultLevel) {
+                    bestResult = captions[i];
+                    bestResultLevel = resultLevel;
+                    console.log("caption "+i+" is the best caption")
+                }
+            }
+        }
+        if (bestResultLevel == 0) {
+            console.log('video ' +this.state.i+ ' wrong transcript');
+            this.state.i = this.state.i + 1;
+            var j = this.state.i;
+            this.state.videoId = this.state.videos[j].id.videoId;
+            this.state.videoTitle = this.state.videos[j].snippet.title;
+            this.getSubs();
+        }
+        else {
+            console.log(bestResult.attributes.start)
+            var start = parseInt(bestResult.attributes.start);
+            this.state.start = start;
+            this.getVideo();
+        }
+        
     }
 
     getVideo() {
@@ -104,7 +253,7 @@ class Home extends Component {
             width: '640',
             playerVars: { // https://developers.google.com/youtube/player_parameters
                 autoplay: 0,
-                start: 0
+                start: this.state.start
             }
         };
         return (

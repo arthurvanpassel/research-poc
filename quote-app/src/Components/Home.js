@@ -69,61 +69,38 @@ class Home extends Component {
         var term = this.state.value.toLowerCase();
         var array = term.split(" ");
 
-        var search_terms = ['is', 'a', 'of', 'was', 'the'];
+        // var search_terms = ['is', 'a', 'of', 'was', 'the'];
 
-        for (var i=array.length-1; i>=0; i--) {
-            for (var j=0; j<search_terms.length; j++)
-                if (array[i] === search_terms[j]) {
-                    array.splice(i, 1);
-                    // break;       //<-- Uncomment  if only the first term has to be removed
-                }
-        }
-
-        var newTerm = array.join('+')
+        // for (var i=array.length-1; i>=0; i--) {
+        //     for (var j=0; j<search_terms.length; j++)
+        //         if (array[i] === search_terms[j]) {
+        //             array.splice(i, 1);
+        //             // break;       //<-- Uncomment  if only the first term has to be removed
+        //         }
+        // }
 
         var bestResultLevel = 0;
+        var resultLevel = 0
         var bestResult = [];
         var movies = this.state.movies;
+
         for (let i=0; i < movies.length; i++) {
             var string = movies[i].content.toLowerCase()
-
+            resultLevel = 0;
             console.log(string);
-            if (string.includes(array[0])) {
-                if (bestResultLevel<1) {
+            for (let j=0; j < array.length; j++) {
+                if (string.includes(array[j])) {
+                    resultLevel++;
+                    console.log("word "+j+" in movie "+i)
+                }
+                if (resultLevel>bestResultLevel) {
                     bestResult = movies[i];
-                    bestResultLevel = 1;
+                    bestResultLevel = resultLevel;
+                    console.log("movie "+i+" is the best option")
                 }
-                console.log('word 1 in answer ' + i)                
-                if (string.includes(array[1]) || string.includes(array[2])) {
-                    if (bestResultLevel<2) {
-                        bestResult = movies[i];
-                        bestResultLevel = 2;
-                    }
-                    console.log('word 2 or 3 in answer ' + i)
-                    if (string.includes(array[3]) || string.includes(array[4])) {
-                        if (bestResultLevel<3) {
-                            bestResult = movies[i];
-                            bestResultLevel = 3;
-                        }
-                        console.log('word 4 or 5 in answer ' + i)
-                        if (string.includes(array[5]) || string.includes(array[6])) {
-                            if (bestResultLevel<4) {
-                                bestResult = movies[i];
-                                bestResultLevel = 4;
-                            }
-                            console.log('word 6 or 7 in answer ' + i)
-                        }
-                    }
-
-                }
-                else {
-                    // console.log('rest of string not in caption');
-                }
-            } else {
-                // console.log('word 1 not in answer ' + i)
-                //Not in the array
             }
         }
+
         console.log(bestResult);
         this.state.movie = bestResult.movie.title
 
@@ -156,7 +133,7 @@ class Home extends Component {
             this.state.transcript = xml;
             console.log(xml);
             
-            if (xml == undefined && this.state.i < 4) {
+            if (xml == undefined && this.state.i < 9) {
                 console.log('video ' +this.state.i+ ' no transcript');
                 this.state.i = this.state.i + 1;
                 var j = this.state.i;

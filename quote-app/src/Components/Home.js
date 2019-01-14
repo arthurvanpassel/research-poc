@@ -133,7 +133,7 @@ class Home extends Component {
     getSearch() {
         var term = this.state.value + " " + this.state.movie;
         
-        YTSearch({type: 'video', key: API_KEY, term: term, maxResults: 5}, (data) =>{
+        YTSearch({type: 'video', key: API_KEY, term: term, maxResults: 10}, (data) =>{
             console.log(data);
             this.state.videos = data;
             this.state.videoId = data[0].id.videoId;
